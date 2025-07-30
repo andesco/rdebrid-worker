@@ -24,6 +24,7 @@ export default defineConfig({
       },
     }),
   ],
+  publicDir: "ui/public",
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./"),

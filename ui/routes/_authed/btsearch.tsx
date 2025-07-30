@@ -67,7 +67,7 @@ const SearchInput = () => {
       <Input
         ref={inputRef}
         label="Search"
-        description="Distributed Hash Table (DHT) network · BT4G"
+        description="BT4G.COM API"
         type="search"
         value={search}
         onChange={(e) => setSearch(e.target.value)}

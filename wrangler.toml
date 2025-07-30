@@ -1,10 +1,12 @@
 name = "rdebrid-worker"
 main = "server/app.ts"
-compatibility_date = "2024-07-01"
+compatibility_date = "2025-07-01"
 compatibility_flags = ["nodejs_compat"]
+account_id = "0a15c5f9d39350baa992ff9f48efc1c8"
 
-[site]
-bucket = "build/client"
+[assets]
+directory = "./build/client"
+not_found_handling = "single-page-application"
 
 # Uncomment and configure for custom domain:
 # [[routes]]

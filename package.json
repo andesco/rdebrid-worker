@@ -3,14 +3,19 @@
   "version": "0.0.2",
   "private": true,
   "scripts": {
-    "dev": "npm run _dev-setup && npm run build:client && wrangler dev",
-    "dev:ui": "npm run _dev-setup && vite",
+    "dev": "npm run build:client && wrangler dev",
+    "dev:ui": "vite",
+    "dev:worker": "wrangler dev",
     "dev:watch": "npm run _dev-setup && vite build --watch",
     "server": "wrangler dev",
-    "typecheck": "npm run _dev-setup && tsc --noEmit",
+    "client": "vite",
+    "server:bun": "bun --watch server/index.ts",
+    "typecheck": "tsc --noEmit",
     "build:client": "npm run _dev-setup && vite build",
+    "build:server": "vite build -c vite.server.config.mts",
+    "update": "pnpm up --latest",
     "deploy": "wrangler deploy",
-    "_dev-setup": "[ -d node_modules/@vitejs ] || (echo '📦 Installing UI dependencies...' && mv package.json package.json.bak && cp package.dev.json package.json && npm install && mv package.json.bak package.json)"
+    "_dev-setup": "[ -d node_modules/@vitejs ] || (echo '📦 Installing UI dependencies...' && mv package.json package.json.bak && cp package.dev.json package.json && npm install --legacy-peer-deps && mv package.json.bak package.json)"
   },
   "dependencies": {
     "bencode": "^4.0.0",
