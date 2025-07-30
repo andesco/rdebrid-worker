@@ -9,7 +9,6 @@ interface Env {
   USERNAME?: string;
   PASSWORD?: string;
   DEBRID_TOKEN: string;
-  __STATIC_CONTENT: KVNamespace;
 }
 
 const app = new Hono<{ Bindings: Env }>({ strict: false }).basePath("/");
@@ -32,156 +31,17 @@ app.use("/api/*", (c, next) => {
 
 app.route("/api", IndexRouter);
 
-// Serve static files using KV
-app.get("*", async (c) => {
-  try {
-    if (c.req.path === "/debug") {
-      const kvKeys = c.env.__STATIC_CONTENT ? await c.env.__STATIC_CONTENT.list({ limit: 20 }) : null;
-      return c.json({
-        path: c.req.path,
-        authMode: c.env.USERNAME && c.env.PASSWORD ? "basic-auth-enabled" : "no-auth-required",
-        hasUsername: !!c.env.USERNAME,
-        hasPassword: !!c.env.PASSWORD,
-        hasDebridToken: !!c.env.DEBRID_TOKEN,
-        hasKV: !!c.env.__STATIC_CONTENT,
-        kvKeys: kvKeys ? kvKeys.keys.map((k: any) => k.name) : []
-      });
-    }
-    
-    // Fallback to KV-based static file serving
-    if (!c.env.__STATIC_CONTENT) {
-      return c.text("Static content not available", 500);
-    }
-    
-    // Get all KV keys to find the hashed version of requested file
-    const kvKeys = await c.env.__STATIC_CONTENT.list({ limit: 50 });
-    
-    let path = c.req.path;
-    
-    // Handle root path
-    if (path === "/") {
-      path = "/index.html";
-    }
-    
-    // Remove leading slash for key matching
-    const requestedFile = path.substring(1);
-    
-    // Find the hashed version of the requested file
-    let matchingKey = null;
-    
-    const findKey = (targetKey: string) => {
-      // Direct match first (production)
-      let match = kvKeys.keys.find((key: any) => key.name === targetKey);
-      
-      // In local dev, check Miniflare keys by decoding them
-      if (!match) {
-        match = kvKeys.keys.find((key: any) => {
-          if (key.name.startsWith('$__MINIFLARE_SITES__$/')) {
-            const miniflareKey = key.name.substring('$__MINIFLARE_SITES__$/'.length);
-            const decodedKey = decodeURIComponent(miniflareKey);
-            return decodedKey === targetKey;
-          }
-          return false;
-        });
-      }
-      
-      return match;
-    };
-    
-    const findKeyByPattern = (pattern: (key: string) => boolean) => {
-      // Direct match first (production)
-      let match = kvKeys.keys.find((key: any) => pattern(key.name));
-      
-      // In local dev, check Miniflare keys by decoding them
-      if (!match) {
-        match = kvKeys.keys.find((key: any) => {
-          if (key.name.startsWith('$__MINIFLARE_SITES__$/')) {
-            const miniflareKey = key.name.substring('$__MINIFLARE_SITES__$/'.length);
-            const decodedKey = decodeURIComponent(miniflareKey);
-            return pattern(decodedKey);
-          }
-          return pattern(key.name);
-        });
-      }
-      
-      return match;
-    };
-    
-    // Direct match first
-    matchingKey = findKey(requestedFile);
-    
-    // If no direct match, try to find by pattern (for hashed files)
-    if (!matchingKey) {
-      if (requestedFile === "index.html") {
-        matchingKey = findKeyByPattern(name => name.startsWith("index.") && name.endsWith(".html"));
-      } else if (requestedFile === "favicon.ico") {
-        matchingKey = findKeyByPattern(name => name.startsWith("favicon.") && name.endsWith(".ico"));
-      } else if (requestedFile.startsWith("assets/")) {
-        const fileName = requestedFile.split("/").pop();
-        const baseName = fileName?.split(".")[0];
-        const extension = fileName?.split(".").pop();
-        if (baseName && extension) {
-          matchingKey = findKeyByPattern(name => 
-            name.startsWith(`assets/${baseName}.`) && name.endsWith(`.${extension}`)
-          );
-        }
-      } else if (requestedFile.startsWith("fonts/")) {
-        const fileName = requestedFile.split("/").pop();
-        const baseName = fileName?.split(".")[0];
-        const extension = fileName?.split(".").pop();
-        if (baseName && extension) {
-          matchingKey = findKeyByPattern(name => 
-            name.startsWith(`fonts/${baseName}.`) && name.endsWith(`.${extension}`)
-          );
-        }
-      }
-    }
-    
-    if (matchingKey) {
-      const file = await c.env.__STATIC_CONTENT.get(matchingKey.name, { type: "arrayBuffer" });
-      
-      if (file) {
-        // Determine content type
-        let contentType = "text/plain";
-        if (path.endsWith(".html")) contentType = "text/html";
-        else if (path.endsWith(".css")) contentType = "text/css";
-        else if (path.endsWith(".js")) contentType = "application/javascript";
-        else if (path.endsWith(".json")) contentType = "application/json";
-        else if (path.endsWith(".ico")) contentType = "image/x-icon";
-        else if (path.endsWith(".woff2")) contentType = "font/woff2";
-        else if (path.endsWith(".svg")) contentType = "image/svg+xml";
-        else if (path.endsWith(".png")) contentType = "image/png";
-        else if (path.endsWith(".jpg") || path.endsWith(".jpeg")) contentType = "image/jpeg";
-        
-        const headers = new Headers({ "Content-Type": contentType });
-        
-        // Add caching headers for assets
-        if (path.startsWith("/assets/") || path.startsWith("/fonts/")) {
-          headers.set("Cache-Control", "public, max-age=31536000");
-        }
-        
-        return new Response(file, { headers });
-      }
-    }
-    
-    // SPA fallback - serve index.html for non-API routes
-    if (!path.startsWith("/api")) {
-      const indexKey = findKeyByPattern(name => name.startsWith("index.") && name.endsWith(".html"));
-      if (indexKey) {
-        const indexFile = await c.env.__STATIC_CONTENT.get(indexKey.name, { type: "arrayBuffer" });
-        if (indexFile) {
-          return new Response(indexFile, {
-            headers: { "Content-Type": "text/html" }
-          });
-        }
-      }
-    }
-    
-    return c.text("Not Found", 404);
-  } catch (error) {
-    console.error("Static file serving error:", error);
-    return c.text("Static file error: " + (error instanceof Error ? error.message : String(error)), 500);
-  }
+// Debug endpoint
+app.get("/debug", async (c) => {
+  return c.json({
+    path: c.req.path,
+    authMode: c.env.USERNAME && c.env.PASSWORD ? "basic-auth-enabled" : "no-auth-required",
+    hasUsername: !!c.env.USERNAME,
+    hasPassword: !!c.env.PASSWORD,
+    hasDebridToken: !!c.env.DEBRID_TOKEN,
+    staticAssets: "served-by-cloudflare-workers-natively"
+  });
 });
+
 
 export default app;

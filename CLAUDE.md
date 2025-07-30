@@ -17,23 +17,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Quick start:**
 - Use `npm run dev` for one-time build + Worker start
 
-## Package Management Strategy - CRITICAL DOCUMENTATION
+## Modern Cloudflare Workers Architecture - UPDATED 2025
 
-### Why the Current Setup Works (DO NOT BREAK THIS!)
+### New Native Static Assets Approach
 
-**The Problem We Solved:**
-1. **Cloudflare Deploy Button** uses `npm ci` which requires `package-lock.json` to match `package.json` exactly
-2. **Production deployments** need minimal dependencies (server only, ~8MB vs ~80MB with UI deps)
-3. **Development** needs UI dependencies (React, Vite, TypeScript, etc.)
-4. **Previous complex package switching** was brittle and confusing
+**What Changed:**
+Migrated from complex KV-based static file serving to Cloudflare Workers native static assets support (2025 best practice).
 
-**Our Solution - Pre-built Assets Strategy:**
+**The Modern Solution:**
 
 ### File Structure:
 - **`package.json`** → Production-ready (server deps + wrangler only)
-- **`package.dev.json`** → All UI dependencies for development
+- **`package.dev.json`** → All UI dependencies for development  
 - **`package-lock.json`** → MUST stay in sync with `package.json`
-- **`build/client/`** → Pre-built UI assets (committed to repo)
+- **`build/client/`** → Pre-built UI assets (automatically served by Cloudflare)
+- **`wrangler.toml`** → Uses `[assets]` configuration instead of KV
 
 ### How It Works:
 
@@ -41,14 +39,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
    - Clones repo with `package.json` (minimal deps)
    - Runs `npm ci` (installs only server deps + wrangler)
    - Runs `npm run deploy` → `wrangler deploy`
-   - Uses pre-built assets from `build/client/`
-   - ✅ Fast, reliable deployment
+   - Wrangler automatically uploads and serves static assets from `build/client/`
+   - ✅ Zero-cost static requests, automatic edge caching
 
 2. **Local Development:**
-   - `npm run server` → Just works (uses pre-built assets)
+   - `npm run server` → Wrangler serves assets automatically
    - `npm run dev:watch` → Auto-installs UI deps when needed via `_dev-setup`
    - `_dev-setup` script temporarily swaps to `package.dev.json`, installs, then restores
-   - ✅ Clean development experience
+   - ✅ Simplified development, no manual asset management
 
 ### CRITICAL RULES - DO NOT BREAK:
 
@@ -68,20 +66,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
    - Never add to main `package.json` 
 
 4. **Commit pre-built assets in `build/client/`:**
-   - These are used by Deploy Button
+   - These are automatically served by Workers static assets
    - Update when UI changes: `npm run build:client`
+   - No manual upload needed - Wrangler handles everything
 
 5. **The `_dev-setup` script is critical:**
    - Only installs UI deps when `node_modules/@vitejs` missing
    - Temporarily swaps package files safely
    - Don't modify without understanding the flow
 
+6. **Workers static assets configuration:**
+   - `wrangler.toml` uses `[assets]` not `[site]` or KV
+   - `not_found_handling = "single-page-application"` for React Router
+   - No KV namespace needed for static files
+
 ### Warning Signs of Breakage:
 
 - ❌ "wrangler: not found" → wrangler missing from `package.json`
 - ❌ "npm ci sync error" → `package-lock.json` out of sync
 - ❌ "Missing dependencies" → UI deps accidentally in main `package.json`
-- ❌ Deploy Button timeout → package too large or build step required
+- ❌ Deploy Button timeout → package too large
+- ❌ "Static assets not found" → `build/client/` directory missing or empty
 
 ### Safe Workflow for Changes:
 
@@ -99,10 +104,37 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Updating UI:
 1. Make changes in ui/
 2. Run: npm run build:client  
-3. Commit both ui/ changes and build/client/ updates
+3. Deploy: npm run deploy (Wrangler uploads assets automatically)
+4. Commit both ui/ changes and build/client/ updates
+
+## CRITICAL DEVELOPMENT WORKFLOW
+
+**⚠️ ALWAYS REBUILD BEFORE DEPLOYING:**
+```bash
+# Correct workflow for UI changes:
+npm run build:client && npm run deploy
+
+# Or use the combined dev script:
+npm run dev  # builds + deploys automatically
 ```
 
-This system eliminates package switching complexity while keeping Deploy Button working perfectly!
+**Why this matters:**
+- Static assets are served from `build/client/` directory
+- Changes in `ui/` don't affect deployment until rebuilt
+- Forgetting to rebuild = old assets deployed = broken functionality
+- Wrangler only uploads what's in `build/client/`, not source files
+```
+
+## Benefits of Modern Approach:
+
+- **Zero cost** for static asset requests (no KV read charges)
+- **Automatic optimization** - edge caching, compression, CDN delivery
+- **Simplified codebase** - removed 150+ lines of complex asset logic
+- **Better performance** - assets served directly from Cloudflare edge
+- **Single deployment** - `wrangler deploy` handles everything atomically
+- **SPA support** - automatic fallback routing for React Router
+
+This modernized system follows Cloudflare's 2025 best practices while maintaining Deploy Button compatibility!
 
 # Using Gemini CLI for Large Codebase Analysis
 

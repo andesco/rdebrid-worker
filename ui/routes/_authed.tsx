@@ -78,7 +78,7 @@ function AuthenticatedLayout() {
       <div className="relative z-0 flex-1">
         <AppNavbar />
         <SideNav />
-        <main className="absolute left-0 right-0 md:bottom-0 md:left-36 bottom-20 top-0 md:top-16 max-w-screen-xl mx-auto overflow-y-auto p-4">
+        <main className="absolute left-0 right-0 md:bottom-0 md:left-64 bottom-20 top-0 md:top-16 max-w-screen-xl mx-auto overflow-y-auto p-4">
           <Outlet />
         </main>
         {open && <FileSelectModal />}
