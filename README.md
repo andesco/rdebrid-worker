@@ -1,15 +1,17 @@
 # rdebrid-worker
 
-rdebrid is a Cloudflare Worker that servers a modern interface for Real Debrid.
+`rdebrid-worker` servers a modern interface for Real-Debrid. It is based on `rdebrid-ui` but refactored for quick single-user deployment using Cloudflare Workers (Deploy to Cloudflare) and your Real-Debrid [API Private Token](https://real-debrid.com/apitoken). 
 
 ## Features
 
-- clean and modern interface for Real Debrid using HeroUI
+- clean and modern interface for Real-Debrid using HeroUI
 - fast and responsive web app
 - basic library managment
-- search torrent using `BT4G` API
+- search torrent using `BT4G`
 - convert torrent files to magnet links using `Tor2Magnet`
 - mobile UI
+
+Anti-Features 
 
 
 ## Deploy to Cloudflare
@@ -21,7 +23,7 @@ rdebrid is a Cloudflare Worker that servers a modern interface for Real Debrid.
 1. [Deploy to Cloudflare](https://deploy.workers.cloudflare.com/?url=https://github.com/andesco/rdebrid-worker)
 2. select: Create and deploy, Continue to project…
 3. Workers & Pages › rdebrid-worker › Settings › Variables and Secrets › Add: \
-`DEBRID_TOKEN`: your Real Debrid [API Private Token](https://real-debrid.com/apitoken)\
+`DEBRID_TOKEN`: your Real-Debrid [API Private Token](https://real-debrid.com/apitoken)\
 `USERNAME` & `PASSWORD`: enable [basic authentication](https://en.wikipedia.org/wiki/Basic_access_authentication)
 4. Optional: Add `rdebrid-worker` to [Cloudflare Access](https://one.dash.cloudflare.com/) as a self-hosted app
 
@@ -63,7 +65,7 @@ The application requires the following environment variables:
 |----------------------------|------------------------------------------------------------|
 | `DEBRID_TOKEN`             | **required:** [API Private Token](https://real-debrid.com/apitoken)  |
 | `USERNAME` & `PASSWORD`    | optional: enable [basic authentication](https://en.wikipedia.org/wiki/Basic_access_authentication) |
-| `FORWARD_IP`               | override IP address forwarded to Real Debrid API (falls back to `CF-Connecting-IP` header) |
+| `FORWARD_IP`               | override IP address forwarded to Real-Debrid API (falls back to `CF-Connecting-IP` header) |
 | `PROXY_URL`                | optional: proxy URL for search requests |
 
 > [!NOTE]
