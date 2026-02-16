@@ -1,11 +1,17 @@
 import type { Dispatch, SetStateAction } from "react";
 
+export type WorkerBindings = {
+  DEBRID_TOKEN?: string;
+  USERNAME?: string;
+  PASSWORD?: string;
+  FORWARD_IP?: string;
+  PROXY_URL?: string;
+  ALLOWED_ORIGINS?: string;
+  ENVIRONMENT?: string;
+};
+
 export type HonoBinding = {
-  Bindings: {
-    DEBRID_TOKEN: string;
-    FORWARD_IP: string;
-    PROXY_URL: string;
-  };
+  Bindings: WorkerBindings;
 };
 
 export type OauthData = {

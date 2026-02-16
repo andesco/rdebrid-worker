@@ -4,7 +4,7 @@ import { defineConfig } from "vite";
 export default defineConfig({
   build: {
     lib: {
-      entry: ["server/index.ts"],
+      entry: ["server/app.ts"],
       formats: ["es"],
       fileName: () => "index.js",
     },

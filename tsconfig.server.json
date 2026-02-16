@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "incremental": false,
+    "types": ["@types/bun"]
+  },
+  "include": ["server/**/*.ts", "types/index.ts", "vite-env.d.ts"],
+  "exclude": ["node_modules", "ui", "build"]
+}
