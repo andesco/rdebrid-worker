@@ -29,23 +29,38 @@ export const UnRestrictLink = () => {
   const actions = useDebridStore((state) => state.actions);
 
   const onSubmit = async (data: typeof initialformState) => {
-    const links = data.links.split("\n");
+    const links = data.links
+      .split("\n")
+      .map((link) => link.trim())
+      .filter(Boolean);
+
     actions.setUnRestrictState("running");
     try {
       for (const link of links) {
         try {
           const res = await http.postForm<DebridUnlock>("/debrid/unrestrict/link", {
-            link: link.trim(),
+            link,
             password: data.password.trim(),
           });
           actions.addUnrestrictedFile(res.data);
         } catch (err) {
           if (isAxiosError<DebridUnlock>(err)) {
             actions.addUnrestrictedFile({
+              id: `error-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+              filename: link,
+              filesize: 0,
               link,
+              host: "",
               error: err.response?.data.error || err.message,
               host_icon: defaultUnlockLinkAvatar,
-            } as any);
+              chunks: 0,
+              crc: 0,
+              download: "",
+              streamable: 0,
+              type: "error",
+              mimeType: "",
+              generated: new Date().toISOString(),
+            });
           }
         }
       }
@@ -61,28 +76,39 @@ export const UnRestrictLink = () => {
     if (restrictedId) {
       setValue("links", `https://real-debrid.com/d/${restrictedId}`);
     }
-  }, [data, restrictedId]);
+  }, [data, restrictedId, setValue]);
 
   useEffect(() => {
     return () => {
       actions.clearUnrestrictedFiles();
     };
-  }, []);
+  }, [actions]);
 
   return (
     <form className="flex gap-4 flex-col" onSubmit={handleSubmit(onSubmit)}>
-      <Textarea
-        label="Host Links"
-        classNames={{
-          input: "focus:outline-none focus:ring-0"
-        }}
+      <Controller
+        name="links"
+        control={control}
+        render={({ field }) => (
+          <Textarea
+            label="Host Links"
+            value={field.value}
+            onChange={field.onChange}
+          />
+        )}
       />
-      <Input
-        label="Password"
-        description="optional password"
-        classNames={{
-          input: "focus:outline-none focus:ring-0"
-        }}
+      <Controller
+        name="password"
+        control={control}
+        render={({ field }) => (
+          <Input
+            label="Password"
+            description="optional password"
+            type="password"
+            value={field.value}
+            onChange={field.onChange}
+          />
+        )}
       />
 
       <Button 

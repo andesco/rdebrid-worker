@@ -1,21 +1,31 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useCallback, useRef, useState, useEffect } from "react";
+import { useCallback, useRef, useState, useEffect, lazy, Suspense } from "react";
 import {
-  Button,
-  Dropdown,
   DropdownItem,
-  DropdownMenu,
   DropdownTrigger,
   Input,
+  type Selection,
 } from "@heroui/react";
 import { Icons } from "@/ui/utils/icons";
-import type { Selection } from "@heroui/react";
+import type { AppSelection } from "@/types";
 import { BtSearchList } from "@/ui/components/list/btsearch";
 import { btSearchItemsQueryOptions } from "@/ui/utils/queryOptions";
 import { valibotSearchValidator } from "@tanstack/router-valibot-adapter";
 import { btdigParamsSchema } from "@/ui/utils/schema";
 import { useIsFetching } from "@tanstack/react-query";
-import { RealDebridAccountInfo } from "@/ui/components/real-debrid-account-info";
+import {
+  AppButton,
+  AppDropdown,
+  AppDropdownMenu,
+  AppLoadingState,
+} from "@/ui/components/primitives";
+import { toAppSelection } from "@/ui/utils/selection";
+
+const LazyRealDebridAccountInfo = lazy(() =>
+  import("@/ui/components/real-debrid-account-info").then((module) => ({
+    default: module.RealDebridAccountInfo,
+  }))
+);
 
 export const Route = createFileRoute("/_authed/btsearch")({
   component: Component,
@@ -39,12 +49,11 @@ const SearchInput = () => {
 
   const [search, setSearch] = useState(q || "");
 
-  const isFetching = useIsFetching({ queryKey: ["btsearch"] });
+  useIsFetching({ queryKey: ["btsearch"] });
 
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
-    // Focus the search input when the page loads
     if (inputRef.current) {
       inputRef.current.focus();
     }
@@ -59,7 +68,7 @@ const SearchInput = () => {
       });
       if (inputRef.current) inputRef.current.blur();
     },
-    [search]
+    [navigate, search]
   );
 
   return (
@@ -71,9 +80,6 @@ const SearchInput = () => {
         type="search"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        classNames={{
-          input: "focus:outline-none focus:ring-0"
-        }}
       />
     </form>
   );
@@ -86,61 +92,68 @@ const categoriesList = [
   { value: "doc", label: "Document" },
   { value: "app", label: "Application" },
   { value: "other", label: "Other" },
-];
+] as const;
 
 const sortOderList = [
   { value: "time", label: "CreatedAt" },
   { value: "size", label: "Size" },
   { value: "seeders", label: "Seeders" },
   { value: "relevance", label: "Relevance" },
-];
+] as const;
+
+const getFirstSelectionValue = (
+  selection: AppSelection,
+  fallback: string
+): string => {
+  if (selection === "all") {
+    return fallback;
+  }
+
+  return Array.from(selection)[0] ?? fallback;
+};
 
 const CategorySelect = () => {
   const { category } = Route.useSearch();
 
-  const [selectedKeys, setSelectedKeys] = useState<Selection>(
+  const [selectedKeys, setSelectedKeys] = useState<AppSelection>(
     new Set([category || "all"])
   );
 
   const navigate = useNavigate();
 
+  useEffect(() => {
+    setSelectedKeys(new Set([category || "all"]));
+  }, [category]);
+
   const onSelectionChange = useCallback(
     (keys: Selection) => {
-      setSelectedKeys(keys);
+      const nextSelection = toAppSelection(keys);
+      setSelectedKeys(nextSelection);
+      const selectedValue = getFirstSelectionValue(nextSelection, "all") as (typeof categoriesList)[number]["value"];
       navigate({
         to: "/btsearch",
-        search: (prev) => ({ ...prev, category: Array.from(keys)[0] as any }),
+        search: (prev) => ({ ...prev, category: selectedValue }),
         replace: true,
       });
     },
-    [setSelectedKeys]
+    [navigate]
   );
 
   return (
-    <Dropdown
-      placement="bottom-end"
-      classNames={{
-        content: "!bg-radial-1 bg-background",
-      }}
-    >
+    <AppDropdown placement="bottom-end">
       <DropdownTrigger>
-        <Button
+        <AppButton
           title="Category"
           variant="flat"
           className="bg-white/5"
           isIconOnly
+          aria-label="Choose category"
         >
           <Icons.Catergory />
-        </Button>
+        </AppButton>
       </DropdownTrigger>
-      <DropdownMenu
+      <AppDropdownMenu
         aria-label="Category"
-        itemClasses={{
-          base: [
-            "data-[hover=true]:bg-white/5",
-            "data-[selectable=true]:focus:bg-white/5",
-          ],
-        }}
         disallowEmptySelection
         selectionMode="single"
         items={categoriesList}
@@ -152,57 +165,53 @@ const CategorySelect = () => {
             {item.label}
           </DropdownItem>
         )}
-      </DropdownMenu>
-    </Dropdown>
+      </AppDropdownMenu>
+    </AppDropdown>
   );
 };
 
 const SortBySelect = () => {
   const { orderBy } = Route.useSearch();
 
-  const [selectedKeys, setSelectedKeys] = useState<Selection>(
+  const [selectedKeys, setSelectedKeys] = useState<AppSelection>(
     new Set([orderBy || "relevance"])
   );
 
   const navigate = useNavigate();
 
+  useEffect(() => {
+    setSelectedKeys(new Set([orderBy || "relevance"]));
+  }, [orderBy]);
+
   const onSelectionChange = useCallback(
     (keys: Selection) => {
-      setSelectedKeys(keys);
+      const nextSelection = toAppSelection(keys);
+      setSelectedKeys(nextSelection);
+      const selectedValue = getFirstSelectionValue(nextSelection, "relevance") as (typeof sortOderList)[number]["value"];
       navigate({
         to: "/btsearch",
-        search: (prev) => ({ ...prev, orderBy: Array.from(keys)[0] as any }),
+        search: (prev) => ({ ...prev, orderBy: selectedValue }),
         replace: true,
       });
     },
-    [setSelectedKeys]
+    [navigate]
   );
 
   return (
-    <Dropdown
-      placement="bottom-end"
-      classNames={{
-        content: "!bg-radial-1 bg-background",
-      }}
-    >
+    <AppDropdown placement="bottom-end">
       <DropdownTrigger>
-        <Button
+        <AppButton
           title="Order By"
           variant="flat"
           className="bg-white/5"
           isIconOnly
+          aria-label="Choose sort order"
         >
           <Icons.Sort />
-        </Button>
+        </AppButton>
       </DropdownTrigger>
-      <DropdownMenu
+      <AppDropdownMenu
         aria-label="Order By"
-        itemClasses={{
-          base: [
-            "data-[hover=true]:bg-white/5",
-            "data-[selectable=true]:focus:bg-white/5",
-          ],
-        }}
         disallowEmptySelection
         selectionMode="single"
         items={sortOderList}
@@ -214,8 +223,8 @@ const SortBySelect = () => {
             {item.label}
           </DropdownItem>
         )}
-      </DropdownMenu>
-    </Dropdown>
+      </AppDropdownMenu>
+    </AppDropdown>
   );
 };
 function Component() {
@@ -231,7 +240,9 @@ function Component() {
       <BtSearchList />
       {!q && (
         <div className="flex justify-center px-4 pb-4 mt-auto">
-          <RealDebridAccountInfo />
+          <Suspense fallback={<AppLoadingState label="Loading account info" />}>
+            <LazyRealDebridAccountInfo />
+          </Suspense>
         </div>
       )}
     </div>

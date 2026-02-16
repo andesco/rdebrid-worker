@@ -53,7 +53,7 @@ export const VideoPlayer = ({ url, ...props }: VideoPlayerProps) => {
       option={artOptions}
       getInstance={(art) => {
         artInstance.current = art;
-        art.hotkey.add(65, (_: Event) => {
+        art.hotkey.add("a", (_: Event) => {
           art.aspectRatio = aspectRatioes[
             (aspectRatioes.findIndex((val) => val === art.aspectRatio) + 1) % aspectRatioes.length
           ] as AspectRatio;

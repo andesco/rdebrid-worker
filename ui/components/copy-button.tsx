@@ -13,6 +13,7 @@ export const CopyButton: FC<CopyButtonProps> = ({ value, ...buttonProps }) => {
   return (
     <Button
       isIconOnly
+      aria-label={buttonProps["aria-label"] ?? "Copy to clipboard"}
       className="z-50 border-1 border-transparent bg-transparent  before:content-[''] before:block before:z-[-1] before:absolute before:inset-0 before:backdrop-blur-md before:backdrop-saturate-100 before:rounded-lg"
       size="sm"
       variant="bordered"
