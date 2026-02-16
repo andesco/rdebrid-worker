@@ -3,12 +3,9 @@ import { Controller, useForm, useWatch } from "react-hook-form";
 import { useCallback, useRef, useState } from "react";
 import { magnetRegex } from "@/ui/utils/common";
 import http from "@/ui/utils/http";
-import {
-  debridAvailabilityOptions,
-  debridTorrentQueryOptions,
-} from "@/ui/utils/queryOptions";
+import { debridTorrentQueryOptions } from "@/ui/utils/queryOptions";
 import { useSelectModalStore } from "@/ui/utils/store";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "feaxios";
 import { Icons } from "@/ui/utils/icons";
 import { decodeTorrentFile, toMagnetURI } from "@/ui/utils/parse-torrent";
@@ -41,10 +38,6 @@ export const AddTorrent = () => {
     control,
     name: "torrentPath",
   });
-
-  const { data, isFetched, isLoading, isRefetching, refetch } = useQuery(
-    debridAvailabilityOptions(magnet)
-  );
 
   const onSubmit = useCallback(async (data: typeof initialformState) => {
     try {
@@ -137,33 +130,8 @@ export const AddTorrent = () => {
         >
           Add Torrent
         </Button>
-        <Button
-          onPress={() => refetch()}
-          isDisabled={!magnet}
-          color="primary"
-          variant="solid"
-          isLoading={isLoading || isRefetching}
-          startContent={
-            !(isLoading || isRefetching) ? (
-              <Icons.TorrentOutline className="size-[20px]" />
-            ) : null
-          }
-        >
-          Avaliability
-        </Button>
-        {isFetched ? (
-          data?.avaliabilities && data.avaliabilities.length > 0 ? (
-            <span className="inline-flex items-center gap-2">
-              <Icons.CheckCircle className="text-success" />
-              <p className="text-sm">Avaliable</p>
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-2">
-              <Icons.Exclamation className="text-danger" />
-              <p className="text-sm">Not Avaliable</p>
-            </span>
-          )
-        ) : null}
+        {/* TODO: Re-enable availability UI when Real-Debrid instantAvailability is usable again.
+            Reference: debridAvailabilityOptions() in ui/utils/queryOptions.ts */}
       </div>
     </form>
   );

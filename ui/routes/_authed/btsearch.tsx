@@ -67,7 +67,7 @@ const SearchInput = () => {
       <Input
         ref={inputRef}
         label="Search"
-        description="BT4G.COM API"
+        description="BT4GPRX.COM API"
         type="search"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
