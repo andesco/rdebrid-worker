@@ -49,45 +49,5 @@ export default defineConfig({
         comments: false,
       },
     },
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (id.includes("/ui/components/list/file-select-modal.tsx")) {
-            return "file-select-modal";
-          }
-
-          if (id.includes("node_modules")) {
-            if (
-              id.includes("@tanstack/react-router") ||
-              id.includes("@tanstack/react-query")
-            ) {
-              return "tanstack";
-            }
-
-            if (id.includes("@heroui/")) {
-              return "heroui";
-            }
-
-            if (
-              id.includes("@react-aria/") ||
-              id.includes("@react-stately/") ||
-              id.includes("@react-types/")
-            ) {
-              return "react-aria";
-            }
-
-            if (id.includes("framer-motion")) {
-              return "motion";
-            }
-          }
-
-          if (id.includes("~icons/") || id.includes("unplugin-icons")) {
-            return "icons";
-          }
-
-          return undefined;
-        },
-      },
-    },
   },
 });
