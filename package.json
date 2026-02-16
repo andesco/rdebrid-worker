@@ -9,12 +9,13 @@
     "dev:watch": "npm run _dev-setup && vite build --watch",
     "server": "wrangler dev",
     "client": "vite",
-    "server:bun": "bun --watch server/index.ts",
     "typecheck": "tsc --noEmit",
+    "typecheck:server": "tsc --noEmit -p tsconfig.server.json",
     "build:client": "npm run _dev-setup && vite build",
     "build:server": "vite build -c vite.server.config.mts",
+    "test:routes": "bash scripts/smoke-routes.sh",
     "update": "pnpm up --latest",
-    "deploy": "wrangler deploy",
+    "deploy": "npm run build:client && wrangler deploy",
     "_dev-setup": "[ -d node_modules/@vitejs ] || (echo '📦 Installing UI dependencies...' && mv package.json package.json.bak && cp package.dev.json package.json && npm install --legacy-peer-deps && mv package.json.bak package.json)"
   },
   "dependencies": {

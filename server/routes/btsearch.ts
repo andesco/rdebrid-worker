@@ -1,14 +1,6 @@
 import type { HonoBinding } from "@/types";
 import { Hono } from "hono";
-import {
-  fallback,
-  object,
-  picklist,
-  string,
-  safeParse,
-  pipe,
-  transform,
-} from "valibot";
+import { fallback, object, picklist, safeParse, string } from "valibot";
 import axios, { isAxiosError } from "feaxios";
 import { XMLParser } from "fast-xml-parser";
 
@@ -39,7 +31,7 @@ const QuerySchema = object({
     picklist(["all", "movie", "audio", "doc", "app", "other"]),
     "all"
   ),
-  page: fallback(pipe(string(), transform(Number)), 1),
+  page: fallback(string(), "1"),
 });
 
 function formatToUTC(dateString: string): string {
@@ -90,79 +82,150 @@ function extractTotalPages(input: string) {
 
 const router = new Hono<HonoBinding>({ strict: false });
 const PAGE_SIZE = 15;
+const MAX_QUERY_LENGTH = 200;
+const SEARCH_CACHE_TTL_SECONDS = 120;
+const SEARCH_TIMEOUT_MS = 10_000;
+const SEARCH_RETRIES = 1;
+const TRANSIENT_STATUS_CODES = new Set([403, 404, 429, 503]);
+const RETRYABLE_STATUS_CODES = new Set([408, 425, 429, 500, 502, 503, 504]);
+
+const fallbackResponse = (page: number) => ({
+  torrents: [],
+  meta: {
+    total: 0,
+    page,
+    pages: 0,
+  },
+});
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const createCacheKey = (
+  url: string,
+  input: { q: string; page: number; orderBy: string; category: string }
+) => {
+  const keyUrl = new URL(url);
+  keyUrl.search = new URLSearchParams({
+    q: input.q,
+    page: String(input.page),
+    orderBy: input.orderBy,
+    category: input.category,
+  }).toString();
+  return new Request(keyUrl.toString(), { method: "GET" });
+};
+
+const isRetryableError = (error: unknown) => {
+  if (!isAxiosError(error)) return true;
+  const status = error.response?.status;
+  if (!status) return true;
+  return RETRYABLE_STATUS_CODES.has(status);
+};
+
+const getWithRetry = async (
+  params: Record<string, string | number>,
+  proxyUrl: string | undefined
+) => {
+  let attempt = 0;
+  while (true) {
+    try {
+      return await axios.get("https://bt4gprx.com/search", {
+        params,
+        timeout: SEARCH_TIMEOUT_MS,
+        ...(proxyUrl
+          ? {
+              // feaxios supports proxy via fetchOptions, but does not currently type this option.
+              fetchOptions: { proxy: proxyUrl } as unknown as RequestInit,
+            }
+          : {}),
+      });
+    } catch (error) {
+      if (attempt >= SEARCH_RETRIES || !isRetryableError(error)) {
+        throw error;
+      }
+      attempt += 1;
+      await sleep(200 * attempt);
+    }
+  }
+};
 
 router.get("/", async (c) => {
   const result = safeParse(QuerySchema, c.req.query());
   if (!result.success) {
-    return new Response(
-      JSON.stringify({
-        error: result.issues,
-      }),
-      {
-        status: 400,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
+    return c.json({ error: result.issues }, 400);
+  }
+
+  const q = result.output.q.trim();
+  const page = Number(result.output.page);
+  const { orderBy, category } = result.output;
+
+  if (!q || q.length > MAX_QUERY_LENGTH) {
+    return c.json(
+      { error: `Query "q" must be between 1 and ${MAX_QUERY_LENGTH} characters` },
+      400
     );
   }
 
-  const { q, page, orderBy, category } = result.output;
+  if (!Number.isInteger(page) || page < 1) {
+    return c.json({ error: 'Query "page" must be an integer greater than or equal to 1' }, 400);
+  }
+
+  const cacheKey = createCacheKey(c.req.url, { q, page, orderBy, category });
+  const cache = await caches.open("btsearch");
+  const cachedResponse = await cache.match(cacheKey);
+  if (cachedResponse) {
+    return cachedResponse;
+  }
 
   try {
-    const fetchOptions = c.env.PROXY_URL
-      ? {
-          proxy: c.env.PROXY_URL,
-        }
-      : {};
-    const rssPromise = axios.get("https://bt4gprx.com/search", {
-      params: {
+    const rssPromise = getWithRetry(
+      {
         q,
         p: page,
         orderby: orderBy,
         category,
         page: "rss",
       },
-      //@ts-ignore
-      fetchOptions,
+      c.env.PROXY_URL
+    );
+    const countPromise = getWithRetry(
+      {
+        q,
+        category,
+        orderby: orderBy,
+      },
+      c.env.PROXY_URL
+    ).catch((error) => {
+      if (
+        isAxiosError(error) &&
+        TRANSIENT_STATUS_CODES.has(error.response?.status ?? 0)
+      ) {
+        return null;
+      }
+      throw error;
     });
-    const countPromise = axios
-      .get("https://bt4gprx.com/search", {
-        params: {
-          q,
-          category,
-          orderby: orderBy,
-        },
-        //@ts-ignore
-        fetchOptions,
-      })
-      .catch((error) => {
-        if (
-          isAxiosError(error) &&
-          [403, 404, 429, 503].includes(error.response?.status ?? 0)
-        ) {
-          return null;
-        }
-        throw error;
-      });
 
-    const [rssResponse, countResponse] = await Promise.all([
-      rssPromise,
-      countPromise,
-    ]);
+    const [rssResponse, countResponse] = await Promise.all([rssPromise, countPromise]);
 
-    const totalCount = countResponse
-      ? extractTotalPages(countResponse.data)
-      : 0;
+    const totalCount = countResponse ? extractTotalPages(countResponse.data) : 0;
 
-    const parser = new XMLParser();
-    const obj = parser.parse(rssResponse.data) as RssFeedResponse;
-
-    const items = obj.rss?.channel?.item
-      ? Array.isArray(obj.rss.channel.item)
-        ? obj.rss.channel.item
-        : [obj.rss.channel.item]
-      : [];
+    let items: Array<{
+      title: string;
+      link: string;
+      guid: string;
+      pubDate: string;
+      description: string;
+    }> = [];
+    try {
+      const parser = new XMLParser();
+      const obj = parser.parse(rssResponse.data) as RssFeedResponse;
+      items = obj.rss?.channel?.item
+        ? Array.isArray(obj.rss.channel.item)
+          ? obj.rss.channel.item
+          : [obj.rss.channel.item]
+        : [];
+    } catch {
+      items = [];
+    }
 
     const data = items.flatMap((item) => {
       try {
@@ -182,30 +245,36 @@ router.get("/", async (c) => {
 
     const fallbackTotal = (page - 1) * PAGE_SIZE + data.length;
     const fallbackPages = data.length === PAGE_SIZE ? page + 1 : page;
-
-    return c.json({
-      torrents: data || [],
+    const payload = {
+      torrents: data,
       meta: {
         total: totalCount || fallbackTotal,
         page,
         pages: totalCount ? Math.ceil(totalCount / PAGE_SIZE) : fallbackPages,
       },
-    });
+    };
+
+    const response = c.json(payload);
+    response.headers.set(
+      "Cache-Control",
+      `public, max-age=0, s-maxage=${SEARCH_CACHE_TTL_SECONDS}`
+    );
+    await cache.put(cacheKey, response.clone());
+    return response;
   } catch (error) {
     if (
       isAxiosError(error) &&
-      [403, 404, 429, 503].includes(error.response?.status ?? 0)
+      TRANSIENT_STATUS_CODES.has(error.response?.status ?? 0)
     ) {
-      return c.json({
-        torrents: [],
-        meta: {
-          total: 0,
-          page,
-          pages: 0,
-        },
-      });
+      return c.json(fallbackResponse(page));
     }
-    throw error;
+    return c.json(
+      {
+        error: "Failed to search torrents",
+        ...fallbackResponse(page),
+      },
+      502
+    );
   }
 });
 
