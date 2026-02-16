@@ -1,28 +1,30 @@
 import { type Key, useCallback, type MouseEvent } from "react";
 import {
-  Button,
-  Dropdown,
   DropdownItem,
-  DropdownMenu,
   DropdownTrigger,
   Listbox,
   ListboxItem,
-  Pagination,
 } from "@heroui/react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import {
   btSearchItemsQueryOptions,
   debridTorrentQueryOptions,
 } from "@/ui/utils/queryOptions";
-import { Link, useNavigate, useSearch } from "@tanstack/react-router";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { Icons } from "@/ui/utils/icons";
 import { copyDataToClipboard, formattedLongDate, navigateToExternalUrl } from "@/ui/utils/common";
-import clsx from "clsx";
 import { useDebridStore, useSelectModalStore } from "@/ui/utils/store";
 import { getQueryClient } from "@/ui/utils/queryClient";
 import http from "@/ui/utils/http";
 import { toast } from "react-hot-toast";
 import type { BTorrent } from "@/types";
+import {
+  AppButton,
+  AppDropdown,
+  AppDropdownMenu,
+  AppEmptyState,
+  AppPagination,
+} from "@/ui/components/primitives";
 
 const items = [
   {
@@ -94,37 +96,30 @@ const ControlDropdown = () => {
       } else if (key === "link") navigateToExternalUrl(item.link);
       else if (key === "magnet") navigateToExternalUrl(item.magnet);
     },
-    [item?.magnet],
+    [actions, item],
   );
 
   // TODO: Re-enable "Check Availability" action when Real-Debrid
   // /torrents/instantAvailability is available again.
   return (
-    <Dropdown
-      isOpen={open}
-      onOpenChange={closeDropdown}
-      classNames={{
-        content: "!bg-radial-1 bg-background",
-      }}
-    >
+    <AppDropdown isOpen={open} onOpenChange={closeDropdown}>
       <DropdownTrigger>
-        <button type="button" className="fixed" style={{ top: cords.y, left: cords.x }} />
+        <button
+          type="button"
+          className="fixed"
+          style={{ top: cords.y, left: cords.x }}
+          tabIndex={-1}
+          aria-hidden="true"
+        />
       </DropdownTrigger>
-      <DropdownMenu
-        aria-label="Options"
-        itemClasses={{
-          base: ["data-[hover=true]:bg-white/5", "data-[selectable=true]:focus:bg-white/5"],
-        }}
-        onAction={onAction}
-        items={items}
-      >
-        {(item) => (
-          <DropdownItem key={item.key} startContent={item.icon}>
-            {item.label}
+      <AppDropdownMenu aria-label="Options" onAction={onAction} items={items}>
+        {(menuItem) => (
+          <DropdownItem key={menuItem.key} startContent={menuItem.icon}>
+            {menuItem.label}
           </DropdownItem>
         )}
-      </DropdownMenu>
-    </Dropdown>
+      </AppDropdownMenu>
+    </AppDropdown>
   );
 };
 
@@ -135,31 +130,26 @@ export function BtSearchList() {
 
   const actions = useDebridStore((state) => state.actions);
 
-  const onDropDownOpen = useCallback((e: MouseEvent, item: any) => {
+  const onDropDownOpen = useCallback((e: MouseEvent, item: BTorrent) => {
     e.stopPropagation();
     actions.openDropdown();
     actions.setDropdownCords({ x: e.clientX, y: e.clientY });
     actions.setCurrentDebridItem(item);
-  }, []);
+  }, [actions]);
 
   const navigate = useNavigate();
 
   const handlePageChange = useCallback(
     (page: number) =>
       navigate({ to: "/btsearch", search: (prev) => ({ ...prev, page }), resetScroll: true }),
-    [],
+    [navigate],
   );
 
   return (
     <>
       <div className="flex">
         {data.torrents.length > 0 && (
-          <Pagination
-            showControls
-            page={data.meta.page}
-            total={data.meta.pages}
-            onChange={handlePageChange}
-          />
+          <AppPagination page={data.meta.page} total={data.meta.pages} onChange={handlePageChange} />
         )}
       </div>
       {!search.q && null}
@@ -173,11 +163,7 @@ export function BtSearchList() {
             }}
             items={data.torrents}
             selectionMode="none"
-            emptyContent={
-              <p className="text-center text-lg text-zinc-400 absolute top-1/4 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                No torrents found
-              </p>
-            }
+            emptyContent={<AppEmptyState message="No torrents found" />}
           >
             {(item) => (
               <ListboxItem
@@ -195,16 +181,17 @@ export function BtSearchList() {
                   </div>
 
                   <div className="flex ml-auto col-start-6 col-end-6 order-2 sm:order-none">
-                    <Button
+                    <AppButton
                       disableRipple
                       variant="light"
-                      title={"Options"}
+                      title="Options"
                       isIconOnly
+                      aria-label={`Open actions for ${item.title}`}
                       onClick={(e) => onDropDownOpen(e, item)}
                       className="data-[hover=true]:bg-transparent"
                     >
                       <Icons.Dots />
-                    </Button>
+                    </AppButton>
                   </div>
 
                   <div className="items-center flex col-start-1 col-span-5">

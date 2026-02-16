@@ -1,42 +1,40 @@
-import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { siteConfig } from "@/ui/config/site";
+import { useEffect } from "react";
+import { useLocation, useNavigate, useRouter, useSearch } from "@tanstack/react-router";
+import { siteConfig, type AppNavItemId } from "@/ui/config/site";
 import { Tabs, Tab } from "@heroui/react";
 import clsx from "clsx";
+import { getActiveNavItemId, normalizeViewType } from "@/ui/utils/navigation";
 
 export const SideNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const router = useRouter();
+  const viewSearch = useSearch({ strict: false });
 
-  // Determine the active tab key based on current location
-  const getActiveKey = () => {
-    for (const item of siteConfig.navItems) {
-      const matchPaths = (item as any).matchPaths || [item.path];
-      const isMatched = matchPaths.some((path: string) => 
-        location.pathname.startsWith(path)
-      );
-      
-      // Also check for viewMatch (for /view?type=torrents/downloads)
-      const viewMatch = (item as any).viewMatch;
-      if (viewMatch && location.pathname === viewMatch.path) {
-        const searchParams = new URLSearchParams(location.search);
-        if (searchParams.get('type') === viewMatch.type) {
-          return item.id;
-        }
-      }
+  const activeKey = getActiveNavItemId(
+    siteConfig.navItems,
+    location.pathname,
+    normalizeViewType(viewSearch.type)
+  );
 
-      if (isMatched) {
-        return item.id;
-      }
-    }
-    return siteConfig.navItems[0].id; // Default to first item
-  };
+  useEffect(() => {
+    void router.preloadRoute({
+      to: "/view",
+      search: { type: "torrents", page: 1 },
+    });
+    void router.preloadRoute({
+      to: "/view",
+      search: { type: "downloads", page: 1 },
+    });
+  }, [router]);
 
   const handleSelectionChange = (key: React.Key) => {
-    const item = siteConfig.navItems.find(item => item.id === key);
+    const selectedKey = String(key) as AppNavItemId;
+    const item = siteConfig.navItems.find((candidate) => candidate.id === selectedKey);
     if (item) {
       navigate({
         to: item.path,
-        search: item.search
+        search: item.search,
       });
     }
   };
@@ -47,7 +45,7 @@ export const SideNav = () => {
       "w-full h-16 md:w-64 md:h-auto"
     )}>
       <Tabs
-        selectedKey={getActiveKey()}
+        selectedKey={activeKey}
         onSelectionChange={handleSelectionChange}
         variant="light"
         size="lg"

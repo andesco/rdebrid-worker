@@ -1,4 +1,26 @@
 import { Icons } from "@/ui/utils/icons";
+import type { DebridParams } from "@/ui/utils/schema";
+import type { ComponentType } from "react";
+
+export type NavViewType = DebridParams["type"];
+export type AppNavItemId = "btsearch" | "add" | "torrents" | "downloads";
+
+type NavItemSearch = {
+  [key: string]: string | number | boolean | undefined;
+};
+
+export type AppNavItem = {
+  id: AppNavItemId;
+  label: string;
+  path: string;
+  search: NavItemSearch;
+  icon: ComponentType<{ className?: string }>;
+  matchPaths?: readonly string[];
+  viewMatch?: {
+    path: "/view";
+    type: NavViewType;
+  };
+};
 
 export const siteConfig = {
   name: "Debrid",
@@ -38,4 +60,4 @@ export const siteConfig = {
       viewMatch: { path: "/view", type: "downloads" },
     },
   ],
-} as const;
+} satisfies { name: string; description: string; navItems: readonly AppNavItem[] };

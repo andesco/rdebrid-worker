@@ -3,7 +3,6 @@ import { TailwindIndicator } from "@/ui/components/tailwind-indicator";
 import { getQueryClient } from "@/ui/utils/queryClient";
 import { HeroUIProvider } from "@heroui/react";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
 import ReactDOM from "react-dom/client";
 import { Toaster } from "react-hot-toast";
@@ -12,6 +11,14 @@ import { routeTree } from "./route-tree.gen";
 
 import "./styles/globals.css";
 import { Icons } from "./utils/icons";
+
+const ReactQueryDevtools = import.meta.env.DEV
+  ? React.lazy(() =>
+      import("@tanstack/react-query-devtools").then((module) => ({
+        default: module.ReactQueryDevtools,
+      }))
+    )
+  : null;
 
 const router = createRouter({
   routeTree,
@@ -51,7 +58,11 @@ if (!rootElement.innerHTML) {
         <RouterProvider router={router} />
         <TailwindIndicator />
       </HeroUIProvider>
-      <ReactQueryDevtools buttonPosition="bottom-left" />
+      {ReactQueryDevtools ? (
+        <React.Suspense fallback={null}>
+          <ReactQueryDevtools buttonPosition="bottom-left" />
+        </React.Suspense>
+      ) : null}
     </QueryClientProvider>,
   );
 }
