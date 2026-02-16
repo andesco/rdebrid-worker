@@ -9,12 +9,11 @@
     "dev:watch": "vite build --watch",
     "server": "wrangler dev",
     "client": "vite",
-    "server:bun": "bun --watch server/index.ts",
     "typecheck": "tsc --noEmit",
     "build:client": "vite build",
     "build:server": "vite build -c vite.server.config.mts",
     "update": "pnpm up --latest",
-    "deploy": "wrangler deploy"
+    "deploy": "npm run build:client && wrangler deploy"
   },
   "dependencies": {
     "bencode": "^4.0.0",

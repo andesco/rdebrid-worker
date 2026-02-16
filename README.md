@@ -67,6 +67,8 @@ The application requires the following environment variables:
 | `USERNAME` & `PASSWORD`    | optional: enable [basic authentication](https://en.wikipedia.org/wiki/Basic_access_authentication) |
 | `FORWARD_IP`               | override IP address forwarded to Real Debrid API (falls back to `CF-Connecting-IP` header) |
 | `PROXY_URL`                | optional: proxy URL for BT4G search requests via `bt4gprx.com` |
+| `ALLOWED_ORIGINS`          | optional: comma-separated CORS allowlist for cross-origin API access |
+| `ENVIRONMENT`              | optional: set to `development` to enable `/debug` route |
 
 > [!NOTE]
 > When deploying on Cloudflare Workers, the IP will be automatically taken from `CF-Connecting-IP` header and forwarded to real-debrid.com API.
