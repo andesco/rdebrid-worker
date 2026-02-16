@@ -39,3 +39,4 @@ yarn-error.log*
 dist/**/*
 dev-dist/**/*
 tsconfig.tsbuildinfoUI.MD
+.vscode/
