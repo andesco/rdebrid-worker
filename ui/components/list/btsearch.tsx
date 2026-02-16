@@ -12,7 +12,6 @@ import {
 import { useSuspenseQuery } from "@tanstack/react-query";
 import {
   btSearchItemsQueryOptions,
-  debridAvailabilityOptions,
   debridTorrentQueryOptions,
 } from "@/ui/utils/queryOptions";
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
@@ -35,11 +34,6 @@ const items = [
     key: "add",
     label: "Add Torrent",
     icon: <Icons.CirclePlus />,
-  },
-  {
-    key: "availability",
-    label: "Check Availability",
-    icon: <Icons.CheckZoom />,
   },
   {
     key: "copy",
@@ -83,23 +77,6 @@ const ControlDropdown = () => {
             },
           },
         );
-      } else if (key === "availability") {
-        toast.promise(
-          getQueryClient().ensureQueryData(debridAvailabilityOptions(item.magnet)),
-          {
-            loading: "Checking availability",
-            success: (data) =>
-              data?.avaliabilities && data.avaliabilities.length > 0
-                ? `${data.avaliabilities.length} Availability found`
-                : "No Availability found",
-            error: (err) => err.toString(),
-          },
-          {
-            error: {
-              duration: 2000,
-            },
-          },
-        );
       } else if (key === "copy") {
         toast.promise(
           copyDataToClipboard(item.magnet),
@@ -119,6 +96,9 @@ const ControlDropdown = () => {
     },
     [item?.magnet],
   );
+
+  // TODO: Re-enable "Check Availability" action when Real-Debrid
+  // /torrents/instantAvailability is available again.
   return (
     <Dropdown
       isOpen={open}

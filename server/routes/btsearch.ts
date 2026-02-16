@@ -89,6 +89,7 @@ function extractTotalPages(input: string) {
 }
 
 const router = new Hono<HonoBinding>({ strict: false });
+const PAGE_SIZE = 15;
 
 router.get("/", async (c) => {
   const result = safeParse(QuerySchema, c.req.query());
@@ -114,59 +115,94 @@ router.get("/", async (c) => {
           proxy: c.env.PROXY_URL,
         }
       : {};
-    const reqPromises = [
-      axios.get("https://bt4gprx.com/search", {
+    const rssPromise = axios.get("https://bt4gprx.com/search", {
+      params: {
+        q,
+        p: page,
+        orderby: orderBy,
+        category,
+        page: "rss",
+      },
+      //@ts-ignore
+      fetchOptions,
+    });
+    const countPromise = axios
+      .get("https://bt4gprx.com/search", {
         params: {
           q,
-          p: page,
-          orderby: orderBy,
           category,
-          page: "rss",
+          orderby: orderBy,
         },
         //@ts-ignore
         fetchOptions,
-      }),
-      axios.get("https://bt4gprx.com/search", {
-        params: {
-          q,
-          category,
-          orderby: orderBy,
-        },
-        //@ts-ignore
-        fetchOptions,
-      }),
-    ];
-    const responses = await Promise.all(reqPromises);
+      })
+      .catch((error) => {
+        if (
+          isAxiosError(error) &&
+          [403, 404, 429, 503].includes(error.response?.status ?? 0)
+        ) {
+          return null;
+        }
+        throw error;
+      });
 
-    const totalCount = extractTotalPages(responses[responses.length - 1].data);
+    const [rssResponse, countResponse] = await Promise.all([
+      rssPromise,
+      countPromise,
+    ]);
+
+    const totalCount = countResponse
+      ? extractTotalPages(countResponse.data)
+      : 0;
 
     const parser = new XMLParser();
-    const obj = parser.parse(responses[0].data) as RssFeedResponse;
+    const obj = parser.parse(rssResponse.data) as RssFeedResponse;
 
-    if (obj.rss.channel.item && !Array.isArray(obj.rss.channel.item)) {
-      obj.rss.channel.item = [obj.rss.channel.item];
-    }
-    const data = obj.rss.channel.item?.map((item) => ({
-      title: item.title,
-      magnet: removeTrackersFromMagnet(item.link),
-      link: item.guid,
-      createdAt: formatToUTC(item.pubDate),
-      size: item.description.split("<br>")[1],
-    }));
+    const items = obj.rss?.channel?.item
+      ? Array.isArray(obj.rss.channel.item)
+        ? obj.rss.channel.item
+        : [obj.rss.channel.item]
+      : [];
+
+    const data = items.flatMap((item) => {
+      try {
+        return [
+          {
+            title: item.title,
+            magnet: removeTrackersFromMagnet(item.link),
+            link: item.guid,
+            createdAt: formatToUTC(item.pubDate),
+            size: item.description.split("<br>")[1],
+          },
+        ];
+      } catch {
+        return [];
+      }
+    });
+
+    const fallbackTotal = (page - 1) * PAGE_SIZE + data.length;
+    const fallbackPages = data.length === PAGE_SIZE ? page + 1 : page;
 
     return c.json({
       torrents: data || [],
       meta: {
-        total: totalCount,
+        total: totalCount || fallbackTotal,
         page,
-        pages: Math.ceil(totalCount / 15),
+        pages: totalCount ? Math.ceil(totalCount / PAGE_SIZE) : fallbackPages,
       },
     });
   } catch (error) {
-    if (isAxiosError(error) && error.response?.status === 404) {
+    if (
+      isAxiosError(error) &&
+      [403, 404, 429, 503].includes(error.response?.status ?? 0)
+    ) {
       return c.json({
         torrents: [],
-        meta: {},
+        meta: {
+          total: 0,
+          page,
+          pages: 0,
+        },
       });
     }
     throw error;

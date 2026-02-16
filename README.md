@@ -7,7 +7,7 @@
 - clean and modern interface for Real-Debrid using HeroUI
 - fast and responsive web app
 - basic library managment
-- search torrent using `BT4G`
+- search torrent using BT4G via `bt4gprx.com`
 - convert torrent files to magnet links using `Tor2Magnet`
 - mobile UI
 
@@ -65,9 +65,8 @@ The application requires the following environment variables:
 |----------------------------|------------------------------------------------------------|
 | `DEBRID_TOKEN`             | **required:** [API Private Token](https://real-debrid.com/apitoken)  |
 | `USERNAME` & `PASSWORD`    | optional: enable [basic authentication](https://en.wikipedia.org/wiki/Basic_access_authentication) |
-| `FORWARD_IP`               | override IP address forwarded to Real-Debrid API (falls back to `CF-Connecting-IP` header) |
-| `PROXY_URL`                | optional: proxy URL for search requests |
+| `FORWARD_IP`               | override IP address forwarded to Real Debrid API (falls back to `CF-Connecting-IP` header) |
+| `PROXY_URL`                | optional: proxy URL for BT4G search requests via `bt4gprx.com` |
 
 > [!NOTE]
 > When deploying on Cloudflare Workers, the IP will be automatically taken from `CF-Connecting-IP` header and forwarded to real-debrid.com API.
-
