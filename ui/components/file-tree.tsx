@@ -1,7 +1,7 @@
 import type React from "react";
 import { useState, memo, useCallback } from "react";
 
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { Button, Checkbox } from "@heroui/react";
 import type { DebridFileNode, DebridTorrent } from "@/types";
 import { Icons } from "@/ui/utils/icons";
@@ -26,6 +26,7 @@ const UnRestrictButton = memo(({ link }: { link: string }) => {
           href={data.download}
           variant="light"
           isIconOnly
+          aria-label="Download unrestricted file"
           className="data-[hover=true]:bg-transparent w-6 h-6 min-w-6"
         >
           <Icons.DownloadDashed />
@@ -37,6 +38,7 @@ const UnRestrictButton = memo(({ link }: { link: string }) => {
           onPress={() => setEnabled(true)}
           isLoading={isLoading}
           isIconOnly
+          aria-label="Unrestrict file"
           className="data-[hover=true]:bg-transparent w-6 h-6 min-w-6"
         >
           <Icons.DownloadDashed />
@@ -66,6 +68,7 @@ const getAllChildKeys = (node: DebridFileNode) => {
 
 export function DebridTreeItem({ status, node }: DebridTreeItemProps) {
   const [isOpen, setIsOpen] = useState(true);
+  const reduceMotion = useReducedMotion();
 
   const selectedPaths = useSelectModalStore((state) => state.selectedPaths);
 
@@ -83,7 +86,7 @@ export function DebridTreeItem({ status, node }: DebridTreeItemProps) {
       }
       actions.setSelectedPaths(newSelectedKeys);
     },
-    [selectedPaths]
+    [actions, node, selectedPaths]
   );
 
   const isSelected = selectedPaths.has(node.path);
@@ -96,6 +99,7 @@ export function DebridTreeItem({ status, node }: DebridTreeItemProps) {
           isSelected={isSelected}
           disableAnimation
           size="sm"
+          aria-label={`Select ${node.name}`}
           isDisabled={
             status !== "waiting_files_selection" &&
             status !== "magnet_conversion"
@@ -108,10 +112,13 @@ export function DebridTreeItem({ status, node }: DebridTreeItemProps) {
             onPress={() => setIsOpen(!isOpen)}
             className="p-1 bg-transparent w-6 h-6 min-w-6"
             disableAnimation
+            aria-label={isOpen ? `Collapse ${node.name}` : `Expand ${node.name}`}
           >
             <motion.span
               animate={{ rotate: isOpen ? 90 : 0 }}
-              transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+              transition={
+                reduceMotion ? { duration: 0 } : { type: "spring", bounce: 0, duration: 0.4 }
+              }
               className="flex"
             >
               <Icons.ChevronRight className="size-4 text-gray-500" />

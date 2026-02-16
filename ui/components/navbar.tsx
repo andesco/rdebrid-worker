@@ -1,36 +1,71 @@
 import { Link } from "@tanstack/react-router";
-import { Navbar, NavbarBrand, NavbarContent, Button } from "@heroui/react";
+import { Navbar, NavbarBrand, NavbarContent } from "@heroui/react";
 import { Icons } from "@/ui/utils/icons";
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { AppButton } from "@/ui/components/primitives";
+
+type Theme = "light" | "dark";
+
+const STORAGE_KEY = "theme";
+
+const getStoredTheme = (): Theme | null => {
+  const value = localStorage.getItem(STORAGE_KEY);
+  return value === "light" || value === "dark" ? value : null;
+};
+
+const getSystemTheme = (): Theme =>
+  window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+
+const applyTheme = (theme: Theme) => {
+  document.documentElement.classList.toggle("dark", theme === "dark");
+};
 
 export const AppNavbar = () => {
-  const [isDark, setIsDark] = useState(true);
+  const [theme, setTheme] = useState<Theme>("dark");
+  const [usesSystemTheme, setUsesSystemTheme] = useState(false);
 
   useEffect(() => {
-    // Check if dark mode is currently active
-    const isDarkMode = document.documentElement.classList.contains('dark');
-    setIsDark(isDarkMode);
+    const storedTheme = getStoredTheme();
+    const resolvedTheme = storedTheme ?? getSystemTheme();
+    setUsesSystemTheme(!storedTheme);
+    setTheme(resolvedTheme);
+    applyTheme(resolvedTheme);
+
+    if (storedTheme) {
+      return;
+    }
+
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const onMediaChange = (event: MediaQueryListEvent) => {
+      const nextTheme = event.matches ? "dark" : "light";
+      setTheme(nextTheme);
+      applyTheme(nextTheme);
+    };
+
+    media.addEventListener("change", onMediaChange);
+    return () => media.removeEventListener("change", onMediaChange);
   }, []);
 
   const toggleTheme = () => {
-    const newTheme = !isDark;
-    setIsDark(newTheme);
-    
-    if (newTheme) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
+    const nextTheme: Theme = theme === "dark" ? "light" : "dark";
+    setUsesSystemTheme(false);
+    setTheme(nextTheme);
+    applyTheme(nextTheme);
+    localStorage.setItem(STORAGE_KEY, nextTheme);
   };
+
+  const themeLabel = useMemo(() => {
+    if (usesSystemTheme) {
+      return `Toggle theme (currently ${theme}, system)`;
+    }
+
+    return `Toggle theme (currently ${theme})`;
+  }, [theme, usesSystemTheme]);
 
   return (
     <Navbar className="px-0 hidden md:flex w-full">
       <NavbarBrand className="justify-start pl-4 flex-grow-0">
-        <Link
-          to="/"
-        >
+        <Link to="/">
           <p className="font-bold text-inherit">rdebrid</p>
         </Link>
       </NavbarBrand>
@@ -38,29 +73,29 @@ export const AppNavbar = () => {
       <NavbarContent className="flex-grow-0" justify="end">
         <ul className="flex items-center gap-2">
           <li>
-            <Button
+            <AppButton
               as="a"
               href="https://github.com/andesco/rdebrid-worker"
               target="_blank"
               rel="noopener noreferrer"
               variant="light"
               isIconOnly
-              aria-label="GitHub"
+              aria-label="Open GitHub repository"
               className="text-default-600 hover:text-primary"
             >
               <Icons.Github />
-            </Button>
+            </AppButton>
           </li>
           <li>
-            <Button
-              onClick={toggleTheme}
+            <AppButton
+              onPress={toggleTheme}
               variant="light"
               isIconOnly
-              aria-label="Toggle theme"
+              aria-label={themeLabel}
               className="text-default-600 hover:text-primary"
             >
-              {isDark ? <Icons.Sun /> : <Icons.Moon />}
-            </Button>
+              {theme === "dark" ? <Icons.Sun /> : <Icons.Moon />}
+            </AppButton>
           </li>
         </ul>
       </NavbarContent>

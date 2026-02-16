@@ -50,6 +50,7 @@ export const UnlockListItem = memo(({ item }: DownloadListItemProps) => {
                 isIconOnly
                 variant="light"
                 color="danger"
+                aria-label="View link error"
               >
                 <Icons.Exclamation />
               </Button>
@@ -65,6 +66,7 @@ export const UnlockListItem = memo(({ item }: DownloadListItemProps) => {
             isDisabled={!!item.error || item.streamable === 0}
             href={item.download}
             rel="noopener noreferrer"
+            aria-label="Download file"
           >
             <Icons.DownloadDashed />
           </Button>

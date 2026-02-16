@@ -1,7 +1,6 @@
 import { Button, Input } from "@heroui/react";
-import { Controller, useForm, useWatch } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { useCallback, useRef, useState } from "react";
-import { magnetRegex } from "@/ui/utils/common";
 import http from "@/ui/utils/http";
 import { debridTorrentQueryOptions } from "@/ui/utils/queryOptions";
 import { useSelectModalStore } from "@/ui/utils/store";
@@ -65,7 +64,7 @@ export const AddTorrent = () => {
     } finally {
       setIsSubmitting(false);
     }
-  }, []);
+  }, [actions, queryClient, setError]);
 
   const onTorrentChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -74,12 +73,15 @@ export const AddTorrent = () => {
         setValue("torrentPath", file.name);
         file.arrayBuffer().then((buffer) => {
           decodeTorrentFile(new Uint8Array(buffer)).then((torrent) => {
-            setValue("magnet", toMagnetURI(torrent as any));
+            const magnetValue = toMagnetURI(
+              torrent as unknown as Parameters<typeof toMagnetURI>[0]
+            );
+            setValue("magnet", magnetValue);
           });
         });
       }
     },
-    []
+    [setValue]
   );
 
   return (
@@ -108,7 +110,7 @@ export const AddTorrent = () => {
           }
           classNames={{
             base: "cursor-pointer",
-            input: "focus:outline-none focus:ring-0 cursor-pointer",
+            input: "cursor-pointer",
             inputWrapper: "cursor-pointer"
           }}
         />
@@ -116,9 +118,6 @@ export const AddTorrent = () => {
           label="Magnet Link"
           value={magnet}
           onChange={(e) => setValue("magnet", e.target.value)}
-          classNames={{
-            input: "focus:outline-none focus:ring-0"
-          }}
         />
       </div>
       <div className="flex items-center gap-4">

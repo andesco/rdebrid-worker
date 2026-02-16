@@ -1,76 +1,74 @@
 import { AppNavbar } from "@/ui/components/navbar";
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { useSelectModalStore } from "@/ui/utils/store";
-import { FileSelectModal } from "@/ui/components/list/debrid";
 import { SideNav } from "@/ui/components/side-nav";
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import toast from "react-hot-toast";
 
 export const Route = createFileRoute("/_authed")({
   component: AuthenticatedLayout,
 });
 
+const LazyFileSelectModal = lazy(() =>
+  import("@/ui/components/list/file-select-modal").then((module) => ({
+    default: module.FileSelectModal,
+  }))
+);
+
+const shouldShowToast = (key: string, ttlHours: number) => {
+  const now = Date.now();
+  const previous = Number(localStorage.getItem(key) ?? 0);
+  const ttlMs = ttlHours * 60 * 60 * 1000;
+
+  if (now - previous < ttlMs) {
+    return false;
+  }
+
+  localStorage.setItem(key, String(now));
+  return true;
+};
+
 function AuthenticatedLayout() {
   const open = useSelectModalStore((state) => state.open);
 
   useEffect(() => {
-    // Check for missing credentials and show warnings
     const checkCredentials = async () => {
-      console.log('Checking credentials...');
       try {
-        // Check if DEBRID_TOKEN is set by making a request to the API
-        const response = await fetch('/api/debrid/user');
-        if (!response.ok) {
-          toast.error('Real Debrid Token (DEBRID_TOKEN) is not set', {
-            duration: 6000,
-            id: 'missing-debrid-token'
+        const response = await fetch("/api/debrid/user");
+
+        if (response.status === 500 && shouldShowToast("toast:missing-token", 12)) {
+          toast.error("Worker is missing DEBRID_TOKEN. Add the secret and redeploy.", {
+            duration: 7000,
+            id: "missing-debrid-token",
           });
         }
-      } catch (error) {
-        toast.error('Real Debrid Token (DEBRID_TOKEN) is not set', {
-          duration: 6000,
-          id: 'missing-debrid-token'
-        });
+      } catch {
+        if (shouldShowToast("toast:api-unreachable", 6)) {
+          toast.error("Unable to reach worker API. Check deployment and network.", {
+            duration: 5000,
+            id: "api-unreachable",
+          });
+        }
       }
 
-      // Check if basic auth is configured
-      try {
-        const response = await fetch('/api/health');
-        // If we get here without auth challenge, check for Cloudflare Access protection
-        if (response.ok) {
-          // Check if we're protected by Cloudflare Access
-          // CF Access adds specific headers to requests when active
-          const cfAccessJWT = document.cookie.includes('CF_Authorization');
-          const cfAccessAuth = response.headers.get('cf-access-authenticated-user-email');
-          const cfAccessUserId = response.headers.get('cf-access-authenticated-user-id');
-          
-          // Check if Cloudflare Access is enabled
-          if (cfAccessJWT || cfAccessAuth || cfAccessUserId) {
-            // Check if we've shown this toast today
-            const today = new Date().toDateString();
-            const lastShown = localStorage.getItem('cf-access-toast-shown');
-            
-            if (lastShown !== today) {
-              toast.success('Cloudflare Access', {
-                duration: 4000,
-                id: 'cf-access-enabled'
-              });
-              localStorage.setItem('cf-access-toast-shown', today);
-            }
-          } else {
-            // If no Cloudflare Access indicators are found, show warning
-            toast.error('set username & password or enable Cloudflare Access', {
-              duration: 8000,
-              id: 'missing-auth-protection'
-            });
-          }
-        }
-      } catch (error) {
-        // Auth challenge means basic auth is working, so we're good
+      const isProdHost = !["localhost", "127.0.0.1"].includes(window.location.hostname);
+      const hasCfAccessJWT = document.cookie.includes("CF_Authorization");
+      const secureProtocol = window.location.protocol === "https:";
+
+      if (
+        isProdHost &&
+        secureProtocol &&
+        !hasCfAccessJWT &&
+        shouldShowToast("toast:security-reminder", 24)
+      ) {
+        toast("Enable Cloudflare Access or HTTP Basic Auth for public deployments.", {
+          duration: 6000,
+          id: "security-reminder",
+        });
       }
     };
 
-    checkCredentials();
+    void checkCredentials();
   }, []);
 
   return (
@@ -81,7 +79,11 @@ function AuthenticatedLayout() {
         <main className="absolute left-0 right-0 md:bottom-0 md:left-64 bottom-20 top-0 md:top-16 max-w-screen-xl mx-auto overflow-y-auto p-4">
           <Outlet />
         </main>
-        {open && <FileSelectModal />}
+        {open ? (
+          <Suspense fallback={null}>
+            <LazyFileSelectModal />
+          </Suspense>
+        ) : null}
       </div>
     </div>
   );
