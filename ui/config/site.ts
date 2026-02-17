@@ -38,7 +38,7 @@ export const siteConfig = {
       label: "Add",
       path: "/downloader/torrents",
       search: {},
-      icon: Icons.Link,
+      icon: Icons.CirclePlus,
       matchPaths: ["/downloader/torrents", "/downloader/links"],
     },
     {
@@ -55,7 +55,7 @@ export const siteConfig = {
       label: "Downloads",
       path: "/downloads",
       search: {},
-      icon: Icons.Download,
+      icon: Icons.Link,
       matchPaths: ["/downloads"],
       viewMatch: { path: "/view", type: "downloads" },
     },

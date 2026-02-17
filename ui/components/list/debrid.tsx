@@ -96,8 +96,9 @@ export default function DebridList() {
   );
 
   const isDownloads = params.type === "downloads";
+  const hasPagination = totalPages > 1;
   return (
-    <div className="size-full grid gap-2 grid-rows-[auto_1fr]">
+    <div className="flex flex-col gap-2">
       {topContent}
       {isDownloads ? (
         <DowloadList
@@ -113,6 +114,11 @@ export default function DebridList() {
           setSelectedIds={setSelectedIds}
           items={items as DebridTorrent[]}
         />
+      )}
+      {hasPagination && (
+        <div className="flex px-2 pt-2">
+          <AppPagination page={params.page} total={totalPages} onChange={handlePageChange} />
+        </div>
       )}
     </div>
   );

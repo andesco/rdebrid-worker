@@ -6,6 +6,7 @@ account_id = "0a15c5f9d39350baa992ff9f48efc1c8"
 [assets]
 directory = "./build/client"
 not_found_handling = "single-page-application"
+binding = "ASSETS"
 
 # Uncomment and configure for custom domain:
 # [[routes]]

@@ -99,10 +99,19 @@ const ControlDropdown = () => {
     [actions, item],
   );
 
+  const onOpenChange = useCallback(
+    (isOpen: boolean) => {
+      if (!isOpen) {
+        closeDropdown();
+      }
+    },
+    [closeDropdown]
+  );
+
   // TODO: Re-enable "Check Availability" action when Real-Debrid
   // /torrents/instantAvailability is available again.
   return (
-    <AppDropdown isOpen={open} onOpenChange={closeDropdown}>
+    <AppDropdown isOpen={open} onOpenChange={onOpenChange}>
       <DropdownTrigger>
         <button
           type="button"
@@ -131,10 +140,11 @@ export function BtSearchList() {
   const actions = useDebridStore((state) => state.actions);
 
   const onDropDownOpen = useCallback((e: MouseEvent, item: BTorrent) => {
+    e.preventDefault();
     e.stopPropagation();
-    actions.openDropdown();
-    actions.setDropdownCords({ x: e.clientX, y: e.clientY });
     actions.setCurrentDebridItem(item);
+    actions.setDropdownCords({ x: e.clientX, y: e.clientY });
+    actions.openDropdown();
   }, [actions]);
 
   const navigate = useNavigate();
@@ -145,11 +155,18 @@ export function BtSearchList() {
     [navigate],
   );
 
+  const hasPagination = data.torrents.length > 0;
+
   return (
     <>
       <div className="flex">
-        {data.torrents.length > 0 && (
-          <AppPagination page={data.meta.page} total={data.meta.pages} onChange={handlePageChange} />
+        {hasPagination && (
+          <AppPagination
+            isCompact
+            page={data.meta.page}
+            total={data.meta.pages}
+            onChange={handlePageChange}
+          />
         )}
       </div>
       {!search.q && null}
@@ -158,7 +175,6 @@ export function BtSearchList() {
           <ControlDropdown />
           <Listbox
             classNames={{
-              base: "overflow-auto",
               list: "gap-4 px-2",
             }}
             items={data.torrents}
@@ -202,6 +218,16 @@ export function BtSearchList() {
               </ListboxItem>
             )}
           </Listbox>
+          {hasPagination && (
+            <div className="flex mt-2">
+              <AppPagination
+                isCompact
+                page={data.meta.page}
+                total={data.meta.pages}
+                onChange={handlePageChange}
+              />
+            </div>
+          )}
         </>
       )}
     </>

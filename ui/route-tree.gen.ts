@@ -14,6 +14,7 @@ import { Route as AuthedIndexRouteImport } from "./routes/_authed/index"
 import { Route as WatchSplatRouteImport } from "./routes/watch.$"
 import { Route as AuthedViewRouteImport } from "./routes/_authed/view"
 import { Route as AuthedTorrentsRouteImport } from "./routes/_authed/torrents"
+import { Route as AuthedIconLabRouteImport } from "./routes/_authed/icon-lab"
 import { Route as AuthedDownloadsRouteImport } from "./routes/_authed/downloads"
 import { Route as AuthedDownloaderRouteImport } from "./routes/_authed/downloader"
 import { Route as AuthedBtsearchRouteImport } from "./routes/_authed/btsearch"
@@ -43,6 +44,11 @@ const AuthedTorrentsRoute = AuthedTorrentsRouteImport.update({
   path: "/torrents",
   getParentRoute: () => AuthedRoute,
 } as any)
+const AuthedIconLabRoute = AuthedIconLabRouteImport.update({
+  id: "/icon-lab",
+  path: "/icon-lab",
+  getParentRoute: () => AuthedRoute,
+} as any)
 const AuthedDownloadsRoute = AuthedDownloadsRouteImport.update({
   id: "/downloads",
   path: "/downloads",
@@ -68,6 +74,7 @@ export interface FileRoutesByFullPath {
   "/btsearch": typeof AuthedBtsearchRoute
   "/downloader": typeof AuthedDownloaderRouteWithChildren
   "/downloads": typeof AuthedDownloadsRoute
+  "/icon-lab": typeof AuthedIconLabRoute
   "/torrents": typeof AuthedTorrentsRoute
   "/view": typeof AuthedViewRoute
   "/watch/$": typeof WatchSplatRoute
@@ -78,6 +85,7 @@ export interface FileRoutesByTo {
   "/btsearch": typeof AuthedBtsearchRoute
   "/downloader": typeof AuthedDownloaderRouteWithChildren
   "/downloads": typeof AuthedDownloadsRoute
+  "/icon-lab": typeof AuthedIconLabRoute
   "/torrents": typeof AuthedTorrentsRoute
   "/view": typeof AuthedViewRoute
   "/watch/$": typeof WatchSplatRoute
@@ -90,6 +98,7 @@ export interface FileRoutesById {
   "/_authed/btsearch": typeof AuthedBtsearchRoute
   "/_authed/downloader": typeof AuthedDownloaderRouteWithChildren
   "/_authed/downloads": typeof AuthedDownloadsRoute
+  "/_authed/icon-lab": typeof AuthedIconLabRoute
   "/_authed/torrents": typeof AuthedTorrentsRoute
   "/_authed/view": typeof AuthedViewRoute
   "/watch/$": typeof WatchSplatRoute
@@ -102,6 +111,7 @@ export interface FileRouteTypes {
     | "/btsearch"
     | "/downloader"
     | "/downloads"
+    | "/icon-lab"
     | "/torrents"
     | "/view"
     | "/watch/$"
@@ -112,6 +122,7 @@ export interface FileRouteTypes {
     | "/btsearch"
     | "/downloader"
     | "/downloads"
+    | "/icon-lab"
     | "/torrents"
     | "/view"
     | "/watch/$"
@@ -123,6 +134,7 @@ export interface FileRouteTypes {
     | "/_authed/btsearch"
     | "/_authed/downloader"
     | "/_authed/downloads"
+    | "/_authed/icon-lab"
     | "/_authed/torrents"
     | "/_authed/view"
     | "/watch/$"
@@ -172,6 +184,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthedTorrentsRouteImport
       parentRoute: typeof AuthedRoute
     }
+    "/_authed/icon-lab": {
+      id: "/_authed/icon-lab"
+      path: "/icon-lab"
+      fullPath: "/icon-lab"
+      preLoaderRoute: typeof AuthedIconLabRouteImport
+      parentRoute: typeof AuthedRoute
+    }
     "/_authed/downloads": {
       id: "/_authed/downloads"
       path: "/downloads"
@@ -218,6 +237,7 @@ interface AuthedRouteChildren {
   AuthedBtsearchRoute: typeof AuthedBtsearchRoute
   AuthedDownloaderRoute: typeof AuthedDownloaderRouteWithChildren
   AuthedDownloadsRoute: typeof AuthedDownloadsRoute
+  AuthedIconLabRoute: typeof AuthedIconLabRoute
   AuthedTorrentsRoute: typeof AuthedTorrentsRoute
   AuthedViewRoute: typeof AuthedViewRoute
   AuthedIndexRoute: typeof AuthedIndexRoute
@@ -227,6 +247,7 @@ const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedBtsearchRoute: AuthedBtsearchRoute,
   AuthedDownloaderRoute: AuthedDownloaderRouteWithChildren,
   AuthedDownloadsRoute: AuthedDownloadsRoute,
+  AuthedIconLabRoute: AuthedIconLabRoute,
   AuthedTorrentsRoute: AuthedTorrentsRoute,
   AuthedViewRoute: AuthedViewRoute,
   AuthedIndexRoute: AuthedIndexRoute,

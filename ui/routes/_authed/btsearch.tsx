@@ -231,7 +231,7 @@ function Component() {
   const { q } = Route.useSearch();
 
   return (
-    <div className="grid grid-rows-[auto_1fr_auto] gap-4 size-full">
+    <div className="flex flex-col gap-4">
       <div className="flex gap-4 px-2 w-full md:w-1/2 mx-auto">
         <SearchInput />
         <CategorySelect />

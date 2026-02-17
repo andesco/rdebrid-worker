@@ -72,4 +72,17 @@ app.get("/debug", async (c) => {
   });
 });
 
+app.notFound(async (c) => {
+  if (c.req.path.startsWith("/api/")) {
+    return c.text("404 Not Found", 404);
+  }
+
+  const assets = c.env.ASSETS;
+  if (!assets) {
+    return c.text("404 Not Found", 404);
+  }
+
+  return assets.fetch(c.req.raw);
+});
+
 export default app;

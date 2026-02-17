@@ -15,7 +15,7 @@ export function AppList<T extends object>({
 }: AppListProps<T>) {
   return (
     <ListBox
-      className={cn("overflow-auto size-full gap-4 p-2 flex flex-col", className)}
+      className={cn("flex flex-col gap-4 p-2", className)}
       renderEmptyState={renderEmptyState ?? (() => <AppEmptyState message={emptyMessage} />)}
       {...props}
     />

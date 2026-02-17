@@ -1,5 +1,5 @@
 import type { DebridUnlock, DownloadTab } from "@/types";
-import { Avatar, Button, Tab, Tabs, Tooltip, Card, CardBody, CardHeader } from "@heroui/react";
+import { Button, Tab, Tabs, Tooltip, Card, CardBody, CardHeader } from "@heroui/react";
 import { getRouteApi, Outlet } from "@tanstack/react-router";
 import { useDebridStore } from "@/ui/utils/store";
 import { Icons } from "@/ui/utils/icons";
@@ -30,11 +30,6 @@ export const UnlockListItem = memo(({ item }: DownloadListItemProps) => {
   return (
     <Card className="w-full">
       <CardBody className="flex flex-row items-center gap-3 p-3">
-        <Avatar
-          title={item.host}
-          src={item.host_icon}
-          size="sm"
-        />
         <div className="flex-1">
           <p className="font-medium text-sm truncate">
             {item.error ? item.link : item.filename}

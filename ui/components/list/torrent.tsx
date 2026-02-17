@@ -89,8 +89,17 @@ const TorrentDropdown = () => {
     [item, modalActions, mutation, navigate],
   );
 
+  const onOpenChange = useCallback(
+    (isOpen: boolean) => {
+      if (!isOpen) {
+        actions.closeDropdown();
+      }
+    },
+    [actions]
+  );
+
   return (
-    <AppDropdown isOpen={open} onOpenChange={actions.closeDropdown}>
+    <AppDropdown isOpen={open} onOpenChange={onOpenChange}>
       <DropdownTrigger>
         <button
           type="button"
@@ -126,9 +135,11 @@ export function TorrentList({ items, selectedIds, setSelectedIds, selectMode }: 
   );
 
   const onDropDownOpen = useCallback((e: React.MouseEvent, item: DebridTorrent) => {
+    e.preventDefault();
+    e.stopPropagation();
     actions.setCurrentDebridItem(item);
-    actions.openDropdown();
     actions.setDropdownCords({ x: e.clientX, y: e.clientY });
+    actions.openDropdown();
   }, [actions]);
 
   return (
@@ -180,12 +191,6 @@ export function TorrentList({ items, selectedIds, setSelectedIds, selectMode }: 
                   </div>
                   <Checkbox
                     isSelected={isSelected}
-                    size="lg"
-                    classNames={{
-                      base: "m-0",
-                      wrapper: "before:rounded-full after:rounded-full mr-0",
-                    }}
-                    icon={<Icons.CheckCircle />}
                     aria-label={`Select ${item.filename}`}
                     onChange={() => setSelectedIds((prev) => toggleSelection(prev, item.id))}
                   />

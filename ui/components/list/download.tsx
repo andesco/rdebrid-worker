@@ -36,8 +36,13 @@ const items = [
     icon: <Icons.Play />,
   },
   {
+    key: "infuse",
+    label: "Open with Infuse",
+    icon: <Icons.Infuse />,
+  },
+  {
     key: "vlc",
-    label: "Open",
+    label: "Open with VLC",
     icon: <Icons.Vlc />,
   },
   {
@@ -93,12 +98,26 @@ const DownloadDropdown = () => {
         );
       } else if (key === "vlc") {
         navigateToExternalUrl(`vlc://${item.download}`);
+      } else if (key === "infuse") {
+        navigateToExternalUrl(
+          `infuse://x-callback-url/play?url=${encodeURIComponent(item.download)}`
+        );
       }
     },
     [item, mutation, navigate],
   );
+
+  const onOpenChange = useCallback(
+    (isOpen: boolean) => {
+      if (!isOpen) {
+        actions.closeDropdown();
+      }
+    },
+    [actions]
+  );
+
   return (
-    <AppDropdown isOpen={open} onOpenChange={actions.closeDropdown}>
+    <AppDropdown isOpen={open} onOpenChange={onOpenChange}>
       <DropdownTrigger>
         <button
           type="button"
@@ -111,7 +130,11 @@ const DownloadDropdown = () => {
       <AppDropdownMenu
         aria-label="Options"
         onAction={onAction}
-        items={item.streamable ? items : items.filter((i) => i.key !== "play" && i.key !== "vlc")}
+        items={
+          item.streamable
+            ? items
+            : items.filter((i) => i.key !== "play" && i.key !== "vlc" && i.key !== "infuse")
+        }
       >
         {(menuItem) => (
           <DropdownItem key={menuItem.key} startContent={menuItem.icon}>
@@ -138,9 +161,11 @@ export function DowloadList({ items, selectedIds, setSelectedIds, selectMode }: 
   );
 
   const onDropDownOpen = useCallback((e: React.MouseEvent, item: DebridUnlock) => {
+    e.preventDefault();
+    e.stopPropagation();
     actions.setCurrentDebridItem(item);
-    actions.openDropdown();
     actions.setDropdownCords({ x: e.clientX, y: e.clientY });
+    actions.openDropdown();
   }, [actions]);
 
   return (
@@ -166,14 +191,7 @@ export function DowloadList({ items, selectedIds, setSelectedIds, selectMode }: 
           >
             {({ isSelected }) => (
               <div className="grid gap-x-4 gap-y-1 md:gap-y-0 cursor-pointer grid-cols-6 rounded-3xl p-2">
-                <div className="col-start-1 col-span-6 sm:col-span-5 flex gap-2">
-                  <div
-                    title={item.host}
-                    className="flex-shrink-0 size-6 p-1 bg-primary rounded-full"
-                  >
-                    <img alt="hoster" src={item.host_icon} loading="lazy" />
-                  </div>
-
+                <div className="col-start-1 col-span-6 sm:col-span-5">
                   <p title={item.filename} className="text-base truncate">
                     {item.filename}
                   </p>
@@ -182,12 +200,6 @@ export function DowloadList({ items, selectedIds, setSelectedIds, selectMode }: 
                 <div className="flex ml-auto col-start-6 col-end-6 order-2 sm:order-none">
                   <Checkbox
                     isSelected={isSelected}
-                    size="lg"
-                    classNames={{
-                      base: "m-0",
-                      wrapper: "before:rounded-full after:rounded-full mr-0",
-                    }}
-                    icon={<Icons.CheckCircle />}
                     aria-label={`Select ${item.filename}`}
                     onChange={() => setSelectedIds((prev) => toggleSelection(prev, item.id))}
                   />

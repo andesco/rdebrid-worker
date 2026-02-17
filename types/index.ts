@@ -1,6 +1,11 @@
 import type { Dispatch, SetStateAction } from "react";
 
+type AssetFetcher = {
+  fetch: (request: Request | string, init?: RequestInit) => Promise<Response>;
+};
+
 export type WorkerBindings = {
+  ASSETS?: AssetFetcher;
   DEBRID_TOKEN?: string;
   USERNAME?: string;
   PASSWORD?: string;
